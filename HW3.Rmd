@@ -1,0 +1,113 @@
+---
+title: "HW3"
+author: "Nancy Yeung (ny3257)"
+output: pdf_document
+---
+\vspace{-1cm}
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.width = 10, fig.height = 5, warning=FALSE, message=FALSE, echo=TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(tidyverse)
+library(mosaic)
+library(boot)
+library(colorfindr)
+
+data <- read.csv("homework3_data.csv")
+```
+------------------------------------------------------------------------
+\begingroup
+\fontsize{12}{14}\selectfont
+**Question 1:**
+\endgroup
+
+Yes the company should commit to redesigning their web site.
+
+\begingroup
+\fontsize{12}{14}\selectfont
+**Question 2 and 3:**
+\endgroup
+
+```{r}
+dat <- get_colors("tesolife.png")
+cols <- make_palette(dat[1:100, ])
+cols
+```
+
+```{r}
+# First supporting evidence
+ggplot(data, aes(x = items, y = sales, color = factor(design))) +
+  geom_point(alpha = 0.7, size = 3) +
+  geom_smooth(method = "lm", se = FALSE) +  # Line of best fit
+  labs(
+    x = "Item Number",
+    y = "Sales ($)",
+    color = "Design",
+    title = "Sales vs Item Number by Website Design"
+  ) +
+  scale_color_manual(values = c("0" = "#F0E5A0", "1" = "#EFD0D6"),
+                     labels = c("Old Design", "New Design")) +
+  facet_wrap(~ design, labeller = labeller(design = c("0" = "Old Design", "1" = "New Design"))) +
+  theme_minimal() +
+  theme(text = element_text(size = 13, family = "serif"))
+```
+
+The fitted regression line is noticeably steeper for the new design, indicating that higher ratings translate into a greater increase in sales compared to the old design. Additionally, the points for the old design are clustered more heavily on the left of the x-axis, showing that it generally received less items sold.
+
+```{r}
+# Second supporting evidence
+ggplot(data, aes(x = factor(design), y = sales, fill = factor(design))) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(values = c("0" = "#F0E5A0", "1" = "#EFD0D6"),
+                    labels = c("Old Design", "New Design")) +
+  labs(
+    x = "Design Type",
+    y = "Sales ($)",
+    title = "Distribution of Sales by Website Design Type"
+  ) +
+  scale_x_discrete(labels = c("0" = "Old Design", "1" = "New Design")) +
+  theme_minimal() +
+  theme(text = element_text(size = 13, family = "serif"),
+        legend.position = "none")
+```
+
+The box plot above shows sales are higher with the new design.
+
+```{r}
+# Third supporting evidence
+meansales <- data %>%
+  group_by(design) %>% summarize(MeanSales = mean(sales))
+meansales
+```
+
+The average amount of sales is ~$3.66 higher for the new design (design 1).
+
+```{r}
+# Fourth supporting evidence
+set.seed(500)
+
+boot_diff <- function(data, i) {
+  d <- data[i, ]
+  mean(d$sales[d$design == 1]) - mean(d$sales[d$design == 0])
+}
+
+b_res <- boot(data, boot_diff, R = 10000)
+
+boot.ci(b_res, type = c("perc", "bca"))
+```
+
+The 95% bootstrap confidence interval for the difference in mean sales between the new and old design ranges from approximately 2.80 to 4.50 per person (which is also the increase in profit) which is higher than the $1.80 increase per customer required.
+
+\begingroup
+\fontsize{12}{14}\selectfont
+**Question 4:**
+\endgroup
+
+Alternative Statement: The company should not redesign its website because the projected increase in sales does not meet the necessary threshold.
